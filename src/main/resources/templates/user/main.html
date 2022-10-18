@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>用户主页</title>
+    <link rel="stylesheet" th:href="@{/layui/css/layui.css}">
+    <style>
+        body{padding: 6px 16px;}
+        .site-block{
+            padding: 20px;
+            border: 1px solid #eee;
+        }
+        .site-text{
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+<div class="layui-layout layui-layout-admin">
+    <div class="layui-header">
+        <div class="layui-logo layui-hide-xs layui-bg-black">WageManage</div>
+        <!-- 头部区域（可配合layui 已有的水平导航） -->
+        <ul class="layui-nav layui-layout-left">
+            <li class="layui-nav-item layui-hide-xs"><a href="">员工工资</a></li>
+        </ul>
+    </div>
+</div>
+<div style="margin: 80px 0" >
+    <table class="layui-hide" id="demo" lay-filter="test"></table>
+</div>
+<script type="text/html" id="toolbarDemo">
+    <div class="layui-table-tool-temp">
+        <div style="margin: 10px 10px 10px 10px" id="btn">
+            <form class="layui-form layui-form-pane" action="">
+                <div class="layui-form-item">
+                    <div class="layui-inline">
+                        <label class="layui-form-label">员工姓名</label>
+                        <div class="layui-input-inline">
+                            <!--注意此处input标签里的id-->
+                            <input class="layui-input" name="keyword" id="demoReload" autocomplete="off">
+                        </div>
+                    </div>
+
+                    <div class="layui-inline">
+                        <!--注意此处button标签里的type属性-->
+                        <button type="button" class="layui-btn layui-btn-primary"  data-type="reload" lay-filter="data-search-btn"><i class="layui-icon"></i> 搜 索</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</script>
+<script type="text/html" id="barDemo">
+    <a class="layui-btn layui-btn-primary layui-btn-xs" lay-event="detail">查看</a>
+</script>
+<script th:src="@{/layui/layui.js}"></script>
+<script>
+    layui.use(function(){
+        // 得到需要的内置组件
+        var layer = layui.layer; //弹层
+        var laypage = layui.laypage; //分页
+        var table = layui.table; //表格
+        var form = layui.form; //表单
+        var $ = layui.jquery; //jquery
+
+
+        // 执行一个 table 实例
+        table.render({
+            elem: '#demo'
+            ,height: 580
+            ,url: '/WageManage/selectAllWageByPage' //数据接口（此处为静态数据，仅作演示）
+            ,title: '员工工资表'
+            ,page: true //开启分页
+            ,toolbar: '#toolbarDemo' //开启工具栏，此处显示默认图标，可以自定义模板，详见文档
+            ,totalRow: true //开启合计行
+            ,cols: [ [ //表头
+                {field: 'wageId', title: '编号', width:125, sort: true, fixed: 'left'}
+                ,{field: 'employeeId', title: '员工编号', sort: true,width:140}
+                ,{field: 'employeeName', title: '员工姓名', width: 140,}
+                ,{field: 'baseWage', title: '基本工资', sort: true,width: 90}
+                ,{field: 'overtimeWage', title: '加班工资', sort: true,width: 150}
+                ,{field: 'evectionWage', title: '出差补助', sort: true,width: 150}
+                ,{field: 'absentWage', title: '旷工减薪',sort: true, width: 150}
+                ,{field: 'lateWage', title: '迟到减薪', sort: true,width: 150}
+                ,{field: 'totalWage', title: '总工资', sort: true,width: 150}
+                ,{fixed: 'right', title: '操作', width: 150, align:'center', toolbar: '#barDemo'}
+            ] ]
+        });
+
+        //搜索框事件
+        var active = {
+            reload: function(){
+                var demoReload = $('#demoReload');	//得到搜索框里已输入的数据
+                //执行重载
+                table.reload('demo', {
+                    page: {
+                        curr: 1 //重新从第 1 页开始
+                    }
+                    ,where: {
+                        employeeName:  demoReload.val()		//在表格中进行搜索
+                    }
+                });
+            }
+        };
+        $('#btn .layui-btn').on('click', function(){
+            var type = $(this).data('type');
+            active[type] ? active[type].call(this) : '';
+        });
+
+        // 单元格工具事件
+        table.on('tool(test)', function(obj){ //注：tool 是工具条事件名，test 是 table 原始容器的属性 lay-filter="对应的值"
+            var data = obj.data //获得当前行数据
+                ,layEvent = obj.event; //获得 lay-event 对应的值
+            if(layEvent === 'detail'){
+                layer.open({
+                    type: 1,
+                    title: "查看员工工资详细信息",
+                    area: '500px',
+                    content: $("#popCheck"),
+                    success: function(){
+                        //给表单赋值
+                        form.val("formCheck", { //formTest 即 class="layui-form" 所在元素属性 lay-filter="" 对应的值
+                            "wageId":data.wageId
+                            ,"employeeId":data.employeeId
+                            ,"employeeName": data.employeeName
+                            ,"baseWage":data.baseWage
+                            ,"overtimeWage": data.overtimeWage
+                            ,"evectionWage": data.evectionWage
+                            ,"absentWage": data.absentWage
+                            ,"lateWage": data.lateWage
+                            ,"etcWage": data.etcWage
+                            ,"bonusWage": data.bonusWage
+                            ,"totalWage": data.totalWage
+                        });
+                    }
+                });
+            }
+        });
+
+        // 分页
+        laypage.render({
+            elem: 'pageDemo' //分页容器的id
+            ,count: 1000 //数据总数
+            ,limit: 10 //每页显示的数据条数
+            ,skin: '#1E9FFF' //自定义选中色值
+            //,layout: ['prev', 'page', 'next', 'count', 'limit', 'refresh', 'skip'] //自定义排版
+            ,jump: function(obj, first){
+                if(!first){
+                    layer.msg('第'+ obj.curr +'页', {offset: 'b'});
+                }
+            }
+        });
+    });
+</script>
+<!--查看考勤弹出层-->
+<div id="popCheck" style="display:none;" class="site-block site-text">
+    <form class="layui-form" lay-filter="formCheck"  action="">
+        <div class="layui-form-item">
+            <label class="layui-form-label">编号</label>
+            <div class="layui-input-block">
+                <input type="text" name="wageId" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">员工编号</label>
+            <div class="layui-input-block">
+                <input type="text" name="employeeId" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">员工姓名</label>
+            <div class="layui-input-block">
+                <input type="text" name="employeeName" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">基本工资</label>
+            <div class="layui-input-block">
+                <input type="text" name="baseWage" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">加班工资</label>
+            <div class="layui-input-block">
+                <input type="text" name="overtimeWage" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">出差补助</label>
+            <div class="layui-input-block">
+                <input type="text" name="evectionWage" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">旷工减薪</label>
+            <div class="layui-input-block">
+                <input type="text" name="absentWage" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">迟到减薪</label>
+            <div class="layui-input-block">
+                <input type="text" name="lateWage" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">其他补助</label>
+            <div class="layui-input-block">
+                <input type="text" name="etcWage" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">奖金</label>
+            <div class="layui-input-block">
+                <input type="text" name="bonusWage" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">总工资</label>
+            <div class="layui-input-block">
+                <input type="text" name="totalWage" class="layui-input">
+            </div>
+        </div>
+    </form>
+</div>
+</body>
+</html>

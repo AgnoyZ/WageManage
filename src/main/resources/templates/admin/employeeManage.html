@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>人事管理</title>
+    <link  th:href="@{/layui/css/layui.css}" rel="stylesheet">
+    <style>
+        body{padding: 6px 16px;}
+        .site-block{
+            padding: 20px;
+            border: 1px solid #eee;
+        }
+        .site-text{
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+<div class="layui-layout layui-layout-admin">
+    <div class="layui-header">
+        <div class="layui-logo layui-hide-xs layui-bg-black">WageManage</div>
+        <!-- 头部区域（可配合layui 已有的水平导航） -->
+        <ul class="layui-nav layui-layout-left">
+            <li th:if="${session.jobId} != 2"  class="layui-nav-item layui-hide-xs layui-this"><a>人事管理</a></li>
+            <li th:if="${session.jobId} != 1" class="layui-nav-item layui-hide-xs"><a th:href="@{wageConfig}">工资设置</a></li>
+            <li th:if="${session.jobId} == 0" class="layui-nav-item layui-hide-xs"><a th:href="@{checkStat}">考勤统计</a></li>
+        </ul>
+        <ul class="layui-nav layui-layout-right">
+            <li class="layui-nav-item layui-hide layui-show-md-inline-block">
+                <a href="javascript:;">
+                    <p th:text="${session.userName}"/>
+                </a>
+                <dl class="layui-nav-child">
+                    <dd><a th:href="@{loginOut}">Sign out</a></dd>
+                </dl>
+            </li>
+        </ul>
+    </div>
+</div>
+<div style="margin: 80px 0" >
+    <table class="layui-hide" id="demo" lay-filter="test"></table>
+</div>
+<script type="text/html" id="toolbarDemo">
+    <div class="layui-table-tool-temp">
+        <div class="layui-inline" lay-event="add">
+            <i class="layui-icon layui-icon-add-1"></i>
+        </div>
+        <div class="layui-inline" lay-event="update">
+            <i class="layui-icon layui-icon-edit"></i>
+        </div>
+        <div class="layui-inline" lay-event="delete" id="delSelect" >
+            <i class="layui-icon layui-icon-delete"></i>
+        </div>
+        <div  id="btn" class="layui-inline">
+            <form class="layui-form layui-form-pane" style="margin-top: 10px" action="">
+                <div class="layui-form-item">
+                    <div class="layui-inline">
+                        <label class="layui-form-label">员工姓名</label>
+                        <div class="layui-input-inline">
+                            <!--注意此处input标签里的id-->
+                            <input class="layui-input" name="keyword" id="demoReload" autocomplete="off">
+                        </div>
+                    </div>
+
+                    <div class="layui-inline">
+                        <!--注意此处button标签里的type属性-->
+                        <button type="button" class="layui-btn layui-btn-primary"  data-type="reload" lay-filter="data-search-btn"><i class="layui-icon"></i> 搜 索</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</script>
+<script type="text/html" id="barDemo">
+    <a class="layui-btn layui-btn-primary layui-btn-xs" lay-event="detail">查看</a>
+    <a class="layui-btn layui-btn-xs" lay-event="more">更多 <i class="layui-icon layui-icon-down"></i></a>
+</script>
+<script th:src="@{/layui/layui.js}"></script>
+<script>
+    layui.use(function(){
+        // 得到需要的内置组件
+        var layer = layui.layer; //弹层
+        var laypage = layui.laypage; //分页
+        var table = layui.table; //表格
+        var element = layui.element; //元素操作
+        var dropdown = layui.dropdown; //下拉菜单
+        var form = layui.form; //表单
+        var laydate = layui.laydate; //日期选择
+        var $ = layui.jquery; //jquery
+
+
+        // 执行一个 table 实例
+        table.render({
+            elem: '#demo'
+            ,height: 580
+            ,url: '/WageManage/admin/selectAllEmployeeByPage' //数据接口（此处为静态数据，仅作演示）
+            ,title: '员工表'
+            ,page: true //开启分页
+            ,toolbar: '#toolbarDemo' //开启工具栏，此处显示默认图标，可以自定义模板，详见文档
+            ,totalRow: true //开启合计行
+            ,cols: [ [ //表头
+                {type: 'checkbox', fixed: 'left'}
+                ,{field: 'employeeId', title: '员工编号', width:125, sort: true, fixed: 'left'}
+                ,{field: 'employeeName', title: '姓名', width:140}
+                ,{field: 'sex', title: '性别', width: 70,}
+                ,{field: 'education', title: '学历', width: 90}
+                ,{field: 'duty', title: '职务', width: 150}
+                ,{field: 'departmentId', title: '部门', width: 150}
+                ,{field: 'telephone', title: '电话', width: 150}
+                ,{field: 'address', title: '家庭住址', width: 200}
+                ,{fixed: 'right', title: '操作', width: 150, align:'center', toolbar: '#barDemo'}
+            ] ]
+        });
+
+        // 头工具栏事件
+        table.on('toolbar(test)', function(obj){
+            var checkStatus = table.checkStatus(obj.config.id)
+                ,data = checkStatus.data; //获取选中的数据
+            switch(obj.event){
+                case 'add':
+                    var index = layer.open({
+                        type: 1,
+                        title: "添加员工信息",
+                        area: '500px',
+                        content: $("#popAdd")
+                    });
+                    //出生时间选择
+                    laydate.render({
+                        elem: '#dateAdd' //指定元素
+                    });
+                    //提交
+                    form.on('submit(add)', function(formData){
+                        // 向服务端发送添加指令
+                        $.ajax({
+                            url : "/WageManage/admin/insertEmployee",
+                            type: "post",
+                            contentType: "application/json",
+                            dataType:"json",
+                            data: JSON.stringify(formData.field),
+                            success: function (res) {
+                                // 向服务端发送添加请求，执行完毕后，可通过 reloadData 方法完成数据重载
+                                if (res.msg === '添加成功'){
+                                    $('#formAddReset').click(); //重置表单
+                                    table.reload("demo", {
+                                        scrollPos: 'fixed'  // 保持滚动条位置不变 - v2.7.3 新增
+                                    });
+                                }
+                                layer.msg(res.msg);
+                            },
+                        });
+                        parent.layer.close(index);
+                        return false;
+                    });
+                    break;
+                case 'update':
+                    if(data.length === 0){
+                        layer.msg('请选择一行');
+                    } else if(data.length > 1){
+                        layer.msg('只能同时编辑一个');
+                    } else {
+                        var index = layer.open({
+                            type: 1,
+                            title: "修改员工信息",
+                            area: '500px',
+                            content: $("#popEdit"),
+                            success: function(){
+                                //给表单赋值
+                                form.val("formEdit", { //formTest 即 class="layui-form" 所在元素属性 lay-filter="" 对应的值
+                                    "employeeName":data[0].employeeName
+                                    ,"sex": data[0].sex
+                                    ,"birthday":data[0].birthday
+                                    ,"education": data[0].education
+                                    ,"duty": data[0].duty
+                                    ,"departmentId": data[0].departmentId
+                                    ,"telephone":data[0].telephone
+                                    ,"address":data[0].address
+                                    ,"identityId":data[0].identityId
+                                    ,"remark":data[0].remark
+                                });
+                            }
+                        });
+                        //出生时间选择
+                        laydate.render({
+                            elem: '#dateEdit' //指定元素
+                        });
+                        //提交
+                        form.on('submit(edit)', function(formData){
+                            formData.field["employeeId"] = data[0].employeeId;
+                            $.ajax({
+                                url : "/WageManage/admin/updateEmployee",
+                                type: "post",
+                                contentType: "application/json",
+                                dataType:"json",
+                                data: JSON.stringify(formData.field),
+                                success: function (res) {
+                                    // 向服务端发送添加请求，执行完毕后，可通过 reloadData 方法完成数据重载
+                                    if (res.msg === '更新成功'){
+                                        table.reload("demo", {
+                                            scrollPos: 'fixed'  // 保持滚动条位置不变 - v2.7.3 新增
+                                        });
+                                    }
+                                    layer.msg(res.msg);
+                                },
+                            });
+                            parent.layer.close(index);
+                            return false;
+                        });
+                    }
+                    break;
+                case 'delete':
+                    if(data.length === 0){
+                        layer.msg('请选择一行');
+                    } else {
+                        layer.confirm("真的删除所选行么，删除后不能恢复", { title: "删除确认" }, function (index) {
+                            layer.close(index);
+
+                            //向服务端发送删除指令
+                            $.ajax({
+                                url : "/WageManage/admin/batchDeleteEmployee",
+                                type: "post",
+                                contentType: "application/json",
+                                dataType:"json",
+                                data: JSON.stringify(data),
+                                success: function (res) {
+                                    // 向服务端发送删除请求，执行完毕后，可通过 reloadData 方法完成数据重载
+                                    table.reload("demo", {
+                                        scrollPos: 'fixed'  // 保持滚动条位置不变 - v2.7.3 新增
+                                    });
+
+                                    // 输出删除结果
+                                    layer.msg(res.msg);
+                                }
+                            });
+                        });
+                    }
+                    break;
+            };
+        });
+
+        //搜索框事件
+        var active = {
+            reload: function(){
+                var demoReload = $('#demoReload');	//得到搜索框里已输入的数据
+                //执行重载
+                table.reload('demo', {
+                    page: {
+                        curr: 1 //重新从第 1 页开始
+                    }
+                    ,where: {
+                        employeeName:  demoReload.val()		//在表格中进行搜索
+                    }
+                });
+            }
+        };
+        $('#btn .layui-btn').on('click', function(){
+            var type = $(this).data('type');
+            active[type] ? active[type].call(this) : '';
+        });
+
+        // 单元格工具事件
+        table.on('tool(test)', function(obj){ //注：tool 是工具条事件名，test 是 table 原始容器的属性 lay-filter="对应的值"
+            var data = obj.data //获得当前行数据
+                ,layEvent = obj.event; //获得 lay-event 对应的值
+            if(layEvent === 'detail'){
+                layer.open({
+                    type: 1,
+                    title: "查看员工详细信息",
+                    area: '500px',
+                    content: $("#popCheck"),
+                    success: function(){
+                        //给表单赋值
+                        form.val("formCheck", { //formTest 即 class="layui-form" 所在元素属性 lay-filter="" 对应的值
+                            "employeeId":data.employeeId
+                            ,"employeeName":data.employeeName
+                            ,"sex": data.sex
+                            ,"birthday":data.birthday
+                            ,"education": data.education
+                            ,"duty": data.duty
+                            ,"departmentId": data.departmentId
+                            ,"telephone":data.telephone
+                            ,"address":data.address
+                            ,"identityId":data.identityId
+                            ,"remark":data.remark
+                        });
+                    }
+                });
+            } else if(layEvent === 'more'){
+                //下拉菜单
+                dropdown.render({
+                    elem: this //触发事件的 DOM 对象
+                    ,show: true //外部事件触发即显示
+                    ,data: [{
+                        title: '编辑'
+                        ,id: 'edit'
+                    },{
+                        title: '删除'
+                        ,id: 'del'
+                    }]
+                    ,click: function(menudata){
+                        if(menudata.id === 'del'){
+                            layer.confirm("真的删除么，删除后不能恢复", { title: "删除确认" }, function (index) {
+                                layer.close(index);
+
+                                //向服务端发送删除指令
+                                $.ajax({
+                                    url : "/WageManage/admin/deleteEmployee",
+                                    type: "post",
+                                    contentType: "application/json",
+                                    dataType:"json",
+                                    data: data.employeeId,
+                                    success: function (res) {
+                                        // 向服务端发送删除请求，执行完毕后，可通过 reloadData 方法完成数据重载
+                                        if (res.msg  === '删除成功'){
+                                            table.reload("demo", {
+                                                scrollPos: 'fixed'  // 保持滚动条位置不变 - v2.7.3 新增
+                                            });
+                                        }
+                                        // 输出删除结果
+                                        layer.msg(res.msg);
+                                    }
+                                });
+                            });
+                        } else if(menudata.id === 'edit'){
+                            var index = layer.open({
+                                type: 1,
+                                title: "修改员工信息",
+                                area: '500px',
+                                content: $("#popEdit"),
+                                success: function(){
+                                    //给表单赋值
+                                    form.val("formEdit", { //formTest 即 class="layui-form" 所在元素属性 lay-filter="" 对应的值
+                                        "employeeName":data.employeeName
+                                        ,"sex": data.sex
+                                        ,"birthday":data.birthday
+                                        ,"education": data.education
+                                        ,"duty": data.duty
+                                        ,"departmentId": data.departmentId
+                                        ,"telephone":data.telephone
+                                        ,"address":data.address
+                                        ,"identityId":data.identityId
+                                        ,"remark":data.remark
+                                    });
+                                }
+                            });
+                            //出生时间选择
+                            laydate.render({
+                                elem: '#dateEdit' //指定元素
+                            });
+                            //提交
+                            form.on('submit(edit)', function(formData){
+                                formData.field["employeeId"] = data.employeeId;
+                                $.ajax({
+                                    url : "/WageManage/admin/updateEmployee",
+                                    type: "post",
+                                    contentType: "application/json",
+                                    dataType:"json",
+                                    data: JSON.stringify(formData.field),
+                                    success: function (res) {
+                                        // 向服务端发送添加请求，执行完毕后，可通过 reloadData 方法完成数据重载
+                                        if (res.msg === '更新成功'){
+                                            table.reload("demo", {
+                                                scrollPos: 'fixed'  // 保持滚动条位置不变 - v2.7.3 新增
+                                            });
+                                        }
+                                        layer.msg(res.msg);
+                                    },
+                                });
+                                parent.layer.close(index);
+                                return false;
+                            });
+                        }
+                    }
+                    ,align: 'right' //右对齐弹出
+                    ,style: 'box-shadow: 1px 1px 10px rgb(0 0 0 / 12%);' //设置额外样式
+                })
+            }
+        });
+
+        // 分页
+        laypage.render({
+            elem: 'pageDemo' //分页容器的id
+            ,count: 1000 //数据总数
+            ,limit: 10 //每页显示的数据条数
+            ,skin: '#1E9FFF' //自定义选中色值
+            //,layout: ['prev', 'page', 'next', 'count', 'limit', 'refresh', 'skip'] //自定义排版
+            ,jump: function(obj, first){
+                if(!first){
+                    layer.msg('第'+ obj.curr +'页', {offset: 'b'});
+                }
+            }
+        });
+    });
+</script>
+<!--查看用户弹出层-->
+<div id="popCheck" style="display:none;" class="site-block site-text">
+    <form class="layui-form" lay-filter="formCheck"  action="">
+        <div class="layui-form-item">
+            <label class="layui-form-label">员工编号</label>
+            <div class="layui-input-block">
+                <input type="text" name="employeeId" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">员工姓名</label>
+            <div class="layui-input-block">
+                <input type="text" name="employeeName" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">性别</label>
+            <div class="layui-input-block">
+                <input type="text" name="sex" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">出生时间</label>
+            <div class="layui-input-block">
+                <input type="text" name="birthday" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">学历</label>
+            <div class="layui-input-block">
+                <input type="text" name="education" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">职务</label>
+            <div class="layui-input-block">
+                <input type="text" name="duty" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">部门</label>
+            <div class="layui-input-block">
+                <input type="text" name="departmentId" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">电话</label>
+            <div class="layui-input-block">
+                <input type="text" name="telephone" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">家庭住址</label>
+            <div class="layui-input-block">
+                <input type="text" name="address" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">身份证号</label>
+            <div class="layui-input-block">
+                <input type="text" name="identityId" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">备注</label>
+            <div class="layui-input-block">
+                <input type="text" name="remark" class="layui-input">
+            </div>
+        </div>
+    </form>
+</div>
+<!--添加用户弹出层-->
+<div id="popAdd" style="display:none;" class="site-block site-text">
+    <form class="layui-form" action="">
+        <div class="layui-form-item">
+            <label class="layui-form-label">员工编号</label>
+            <div class="layui-input-block">
+                <input type="text" name="employeeId" required  lay-verify="required" placeholder="请输入员工编号" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">员工姓名</label>
+            <div class="layui-input-block">
+                <input type="text" name="employeeName" required  lay-verify="required" placeholder="请输入员工姓名" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">性别</label>
+            <div class="layui-input-block">
+                <input type="radio" name="sex" value="男" title="男">
+                <input type="radio" name="sex" value="女" title="女" checked>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">出生时间</label>
+            <div class="layui-input-inline">
+                <input type="text" name="birthday" required  lay-verify="required" placeholder="请输入出生时间" autocomplete="off" class="layui-input" id="dateAdd" >
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">学历</label>
+            <div class="layui-input-block">
+                <select name="education" lay-verify="required">
+                    <option value=""></option>
+                    <option value="小学">小学</option>
+                    <option value="初中">初中</option>
+                    <option value="高中">高中</option>
+                    <option value="大学">大学</option>
+                    <option value="硕士">硕士</option>
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">职务</label>
+            <div class="layui-input-block">
+                <select name="duty" lay-verify="required">
+                    <option value=""></option>
+                    <option value="工人">工人</option>
+                    <option value="技术人员">技术人员</option>
+                    <option value="总管">总管</option>
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">部门</label>
+            <div class="layui-input-block">
+                <select name="departmentId" lay-verify="required">
+                    <option value=""></option>
+                    <option value="生产部">生产部</option>
+                    <option value="研发部">研发部</option>
+                    <option value="销售部">销售部</option>
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">电话</label>
+            <div class="layui-input-block">
+                <input type="text" name="telephone" required  lay-verify="required" placeholder="请输入电话" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">家庭住址</label>
+            <div class="layui-input-block">
+                <input type="text" name="address" required  lay-verify="required" placeholder="请输入家庭住址" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">身份证号</label>
+            <div class="layui-input-block">
+                <input type="text" name="identityId" required  lay-verify="required" placeholder="请输入身份证号" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">备注</label>
+            <div class="layui-input-block">
+                <input type="text" name="remark" class="layui-input" placeholder="请输入备注">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button class="layui-btn" lay-submit lay-filter="add">立即提交</button>
+                <button type="reset" class="layui-btn layui-btn-primary" id="formAddReset">重置</button>
+            </div>
+        </div>
+    </form>
+</div>
+<!--编辑用户弹出层-->
+<div id="popEdit" style="display:none;" class="site-block site-text">
+    <form class="layui-form" action="" lay-filter="formEdit">
+        <div class="layui-form-item">
+            <label class="layui-form-label">员工姓名</label>
+            <div class="layui-input-block">
+                <input type="text" name="employeeName" required  lay-verify="required" placeholder="请输入员工姓名" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">性别</label>
+            <div class="layui-input-block">
+                <input type="radio" name="sex" value="男" title="男">
+                <input type="radio" name="sex" value="女" title="女">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">出生时间</label>
+            <div class="layui-input-inline">
+                <input type="text" name="birthday" required  lay-verify="required" placeholder="请输入员工姓名" autocomplete="off" class="layui-input" id="dateEdit" >
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">学历</label>
+            <div class="layui-input-block">
+                <select name="education" lay-verify="required">
+                    <option value="小学">小学</option>
+                    <option value="初中">初中</option>
+                    <option value="高中">高中</option>
+                    <option value="大学">大学</option>
+                    <option value="硕士">硕士</option>
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">职务</label>
+            <div class="layui-input-block">
+                <select name="duty" lay-verify="required">
+                    <option value="工人">工人</option>
+                    <option value="技术人员">技术人员</option>
+                    <option value="总管">总管</option>
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">部门</label>
+            <div class="layui-input-block">
+                <select name="departmentId" lay-verify="required">
+                    <option value="生产部">生产部</option>
+                    <option value="研发部">研发部</option>
+                    <option value="销售部">销售部</option>
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">电话</label>
+            <div class="layui-input-block">
+                <input type="text" name="telephone" required  lay-verify="required" placeholder="请输入电话" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">家庭住址</label>
+            <div class="layui-input-block">
+                <input type="text" name="address" required  lay-verify="required" placeholder="请输入家庭住址" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">身份证号</label>
+            <div class="layui-input-block">
+                <input type="text" name="identityId" required  lay-verify="required" placeholder="请输入身份证号" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">备注</label>
+            <div class="layui-input-block">
+                <input type="text" name="remark" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button class="layui-btn" lay-submit lay-filter="edit">立即提交</button>
+                <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+            </div>
+        </div>
+    </form>
+</div>
+</body>
+</html>

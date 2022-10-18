@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>工资设置</title>
+    <link rel="stylesheet" th:href="@{/layui/css/layui.css}">
+    <style>
+        body{padding: 6px 16px;}
+        .site-block{
+            padding: 20px;
+            border: 1px solid #eee;
+        }
+        .site-text{
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+<div class="layui-layout layui-layout-admin">
+    <div class="layui-header">
+        <div class="layui-logo layui-hide-xs layui-bg-black">WageManage</div>
+        <!-- 头部区域（可配合layui 已有的水平导航） -->
+        <ul class="layui-nav layui-layout-left">
+            <li th:if="${session.jobId} != 2" class="layui-nav-item layui-hide-xs"><a th:href="@{employeeManage}">人事管理</a></li>
+            <li th:if="${session.jobId} != 1" class="layui-nav-item layui-hide-xs layui-this"><a>工资设置</a></li>
+            <li th:if="${session.jobId} == 0" class="layui-nav-item layui-hide-xs"><a th:href="@{checkStat}">考勤统计</a></li>
+        </ul>
+        <ul class="layui-nav layui-layout-right">
+            <li class="layui-nav-item layui-hide layui-show-md-inline-block">
+                <a href="javascript:;">
+                    <p th:text="${session.userName}"/>
+                </a>
+                <dl class="layui-nav-child">
+                    <dd><a th:href="@{loginOut}">Sign out</a></dd>
+                </dl>
+            </li>
+        </ul>
+    </div>
+</div>
+<div style="margin: 80px 0" >
+    <table class="layui-hide" id="demo" lay-filter="test"></table>
+</div>
+<script type="text/html" id="barDemo">
+    <a class="layui-btn layui-btn-primary layui-btn-xs" lay-event="detail">查看</a>
+    <a class="layui-btn layui-btn-primary layui-btn-xs" lay-event="edit">编辑</a>
+</script>
+<script th:src="@{/layui/layui.js}"></script>
+<script>
+    layui.use(function(){
+        // 得到需要的内置组件
+        var layer = layui.layer; //弹层
+        var laypage = layui.laypage; //分页
+        var table = layui.table; //表格
+        var form = layui.form; //表单
+        var $ = layui.jquery; //jquery
+
+
+        // 执行一个 table 实例
+        table.render({
+            elem: '#demo'
+            ,height: 580
+            ,url: '/WageManage/admin/selectAllWageConfigByPage' //数据接口（此处为静态数据，仅作演示）
+            ,title: '工资设置表'
+            ,page: true //开启分页
+            ,toolbar: 'defult' //开启工具栏，此处显示默认图标，可以自定义模板，详见文档
+            ,totalRow: true //开启合计行
+            ,cols: [ [ //表头
+                {field: 'duty', title: '职务', width:125, sort: true, fixed: 'left'}
+                ,{field: 'baseWage', title: '基本工资',sort: true, width:140}
+                ,{field: 'dayWage', title: '每日工资',sort: true, width: 140,}
+                ,{field: 'overtimeJob', title: '加班系数', sort: true,width: 90}
+                ,{field: 'evectionStandard', title: '出差标准',sort: true, width: 150}
+                ,{field: 'absentStandard', title: '旷工标准',sort: true, width: 150}
+                ,{field: 'lateStandard', title: '迟到标准', sort: true,width: 150}
+                ,{field: 'etcStandard', title: '其他',sort: true, width: 150}
+                ,{field: 'bonus', title: '奖金',sort: true, width: 150}
+                ,{fixed: 'right', title: '操作', width: 150, align:'center', toolbar: '#barDemo'}
+            ] ]
+        });
+
+
+        // 单元格工具事件
+        table.on('tool(test)', function(obj){ //注：tool 是工具条事件名，test 是 table 原始容器的属性 lay-filter="对应的值"
+            var data = obj.data //获得当前行数据
+                ,layEvent = obj.event; //获得 lay-event 对应的值
+            if(layEvent === 'detail'){
+                layer.open({
+                    type: 1,
+                    title: "查看工资设置详细信息",
+                    area: '500px',
+                    content: $("#popCheck"),
+                    success: function(){
+                        //给表单赋值
+                        form.val("formCheck", { //formTest 即 class="layui-form" 所在元素属性 lay-filter="" 对应的值
+                            "duty":data.duty
+                            ,"baseWage":data.baseWage
+                            ,"dayWage": data.dayWage
+                            ,"overtimeJob":data.overtimeJob
+                            ,"evectionStandard": data.evectionStandard
+                            ,"absentStandard": data.absentStandard
+                            ,"lateStandard": data.lateStandard
+                            ,"etcStandard":data.etcStandard
+                            ,"bonus":data.bonus
+                        });
+                    }
+                });
+            } else if(layEvent === 'edit'){
+                var index = layer.open({
+                    type: 1,
+                    title: "修改工资设置信息",
+                    area: '500px',
+                    content: $("#popEdit"),
+                    success: function(){
+                        //给表单赋值
+                        form.val("formEdit", { //formTest 即 class="layui-form" 所在元素属性 lay-filter="" 对应的值
+                            "baseWage":data.baseWage
+                            ,"dayWage": data.dayWage
+                            ,"overtimeJob":data.overtimeJob
+                            ,"evectionStandard": data.evectionStandard
+                            ,"absentStandard": data.absentStandard
+                            ,"lateStandard": data.lateStandard
+                            ,"etcStandard":data.etcStandard
+                            ,"bonus":data.bonus
+                        });
+                    }
+                });
+                //提交
+                form.on('submit(edit)', function(formData){
+                    formData.field["duty"] = data.duty;
+                    $.ajax({
+                        url : "/WageManage/admin/updateWageConfig",
+                        type: "post",
+                        contentType: "application/json",
+                        dataType:"json",
+                        data: JSON.stringify(formData.field),
+                        success: function (res) {
+                            // 向服务端发送添加请求，执行完毕后，可通过 reloadData 方法完成数据重载
+                            if (res.msg === '更新成功'){
+                                table.reload("demo", {
+                                    scrollPos: 'fixed'  // 保持滚动条位置不变 - v2.7.3 新增
+                                });
+                            }
+                            layer.msg(res.msg);
+                        },
+                    });
+                    parent.layer.close(index);
+                    return false;
+                });
+            }
+        });
+
+        // 分页
+        laypage.render({
+            elem: 'pageDemo' //分页容器的id
+            ,count: 1000 //数据总数
+            ,limit: 10 //每页显示的数据条数
+            ,skin: '#1E9FFF' //自定义选中色值
+            //,layout: ['prev', 'page', 'next', 'count', 'limit', 'refresh', 'skip'] //自定义排版
+            ,jump: function(obj, first){
+                if(!first){
+                    layer.msg('第'+ obj.curr +'页', {offset: 'b'});
+                }
+            }
+        });
+    });
+</script>
+<!--查看工资设置弹出层-->
+<div id="popCheck" style="display:none;" class="site-block site-text">
+    <form class="layui-form" lay-filter="formCheck"  action="">
+        <div class="layui-form-item">
+            <label class="layui-form-label">职务</label>
+            <div class="layui-input-block">
+                <input type="text" name="duty" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">基本工资</label>
+            <div class="layui-input-block">
+                <input type="text" name="baseWage" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">每日工资</label>
+            <div class="layui-input-block">
+                <input type="text" name="dayWage" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">加班系数</label>
+            <div class="layui-input-block">
+                <input type="text" name="overtimeJob" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">出差标准</label>
+            <div class="layui-input-block">
+                <input type="text" name="evectionStandard" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">旷工标准</label>
+            <div class="layui-input-block">
+                <input type="text" name="absentStandard" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">迟到标准</label>
+            <div class="layui-input-block">
+                <input type="text" name="lateStandard" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">其他</label>
+            <div class="layui-input-block">
+                <input type="text" name="etcStandard" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">奖金</label>
+            <div class="layui-input-block">
+                <input type="text" name="bonus" class="layui-input">
+            </div>
+        </div>
+    </form>
+</div>
+<!--编辑工资设置弹出层-->
+<div id="popEdit" style="display:none;" class="site-block site-text">
+    <form class="layui-form" action="" lay-filter="formEdit">
+        <div class="layui-form-item">
+            <label class="layui-form-label">基本工资</label>
+            <div class="layui-input-block">
+                <input type="text" name="baseWage" required  lay-verify="required" placeholder="请输入基本工资" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">每日工资</label>
+            <div class="layui-input-block">
+                <input type="text" name="dayWage" required  lay-verify="required" placeholder="请输入每日工资"  class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">加班系数</label>
+            <div class="layui-input-block">
+                <input type="text" name="overtimeJob" required  lay-verify="required" placeholder="请输入加班系数"  class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">出差标准</label>
+            <div class="layui-input-block">
+                <input type="text" name="evectionStandard" required  lay-verify="required" placeholder="请输入出差标准"  class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">旷工标准</label>
+            <div class="layui-input-block">
+                <input type="text" name="absentStandard" required  lay-verify="required" placeholder="请输入旷工标准"  class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">迟到标准</label>
+            <div class="layui-input-block">
+                <input type="text" name="lateStandard" required  lay-verify="required" placeholder="请输入迟到标准"  class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">其他</label>
+            <div class="layui-input-block">
+                <input type="text" name="etcStandard" required  lay-verify="required" placeholder="请输入其他"  class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">奖金</label>
+            <div class="layui-input-block">
+                <input type="text" name="bonus" required  lay-verify="required" placeholder="请输入奖金"  class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button class="layui-btn" lay-submit lay-filter="edit">立即提交</button>
+                <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+            </div>
+        </div>
+    </form>
+</div>
+</body>
+</html>

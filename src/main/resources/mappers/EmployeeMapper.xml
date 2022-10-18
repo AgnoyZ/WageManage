@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhazhatao.wagemanage.repository.EmployeeRepository">
+    <select id="selectAllEmployee"  resultType="integer">
+        select count(*) from employee
+    </select>
+    <select id="selectAllEmployeeEmployeeNameLike" resultType="integer">
+        select count(*) from employee where employeeName like '%${employeeName}%'
+    </select>
+    <select id="selectAllEmployeeByPage"  resultType="Employee">
+        select * from employee where true
+        <if test="employeeName != null">
+            and employeeName like '%${employeeName}%'
+        </if>
+        <if test="startIndex != null and perPageSize != null">
+            limit #{startIndex}, #{perPageSize}
+        </if>
+    </select>
+    <select id="selectEmployeeByEmployeeId" resultType="Employee">
+        select * from employee
+        where employeeId=#{employeeId}
+    </select>
+    <select id="selectAllEmployeeByDuty"  resultType="Employee">
+        select * from employee
+        where duty=#{duty}
+    </select>
+    <insert id="insertEmployee">
+        insert into employee (employeeId,employeeName,sex,birthday,education,duty,departmentId,identityId,telephone,address,remark)
+        values (#{employeeId},#{employeeName}, #{sex}, #{birthday}, #{education}, #{duty}, #{departmentId}, #{identityId}, #{telephone}, #{address}, #{remark})
+    </insert>
+    <delete id="deleteEmployee">
+        delete from employee where employeeId = #{employeeId}
+    </delete>
+    <delete id="batchDeleteEmployee">
+        delete from employee
+        where employeeId in
+        <foreach collection="list" open="(" separator="," close=")" item="employees">
+            #{employees.employeeId}
+        </foreach>
+    </delete>
+    <update id="updateEmployee">
+        update employee set
+                              employeeName=#{employeeName},
+                              sex=#{sex},
+                              birthday=#{birthday},
+                              education=#{education},
+                              duty=#{duty},
+                              departmentId=#{departmentId},
+                              identityId=#{identityId},
+                              telephone=#{telephone},
+                              address=#{address},
+                              remark=#{remark}
+        where employeeId=#{employeeId}
+    </update>
+</mapper>

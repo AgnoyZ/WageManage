@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.zhazhatao.wagemanage.repository.WageRepository">
+    <select id="selectAllWage"  resultType="integer">
+        select count(*) from wage
+    </select>
+    <select id="selectAllWageEmployeeNameLike" resultType="integer">
+        select count(*) from wage where employeeName like '%${employeeName}%'
+    </select>
+    <select id="selectAllWageByPage"  resultType="Wage">
+        select * from wage where true
+        <if test="employeeName != null">
+            and employeeName like '%${employeeName}%'
+        </if>
+        <if test="startIndex != null and perPageSize != null">
+             limit #{startIndex}, #{perPageSize}
+        </if>
+    </select>
+    <select id="selectWageByEmployeeId" resultType="Wage">
+        select * from wage
+        where employeeId=#{employeeId}
+    </select>
+    <insert id="insertWage">
+        insert into wage (wageId,employeeId,employeeName,baseWage,overtimeWage,evectionWage,absentWage,lateWage,etcWage,bonusWage,totalWage)
+        values(#{wageId},#{employeeId},#{employeeName},#{baseWage},#{overtimeWage},#{evectionWage},#{absentWage},#{lateWage},#{etcWage},#{bonusWage},#{totalWage})
+    </insert>
+    <update id="updateWage">
+        update wage set
+                              baseWage=#{baseWage},
+                              overtimeWage=#{overtimeWage},
+                              evectionWage=#{evectionWage},
+                              absentWage=#{absentWage},
+                              lateWage=#{lateWage},
+                              etcWage=#{etcWage},
+                              bonusWage=#{bonusWage},
+                              totalWage=#{totalWage}
+        where wageId=#{wageId}
+    </update>
+</mapper>

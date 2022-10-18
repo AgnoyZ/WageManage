@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>考勤统计</title>
+    <link rel="stylesheet" th:href="@{/layui/css/layui.css}">
+    <style>
+        body{padding: 6px 16px;}
+        .site-block{
+            padding: 20px;
+            border: 1px solid #eee;
+        }
+        .site-text{
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+<div class="layui-layout layui-layout-admin">
+    <div class="layui-header">
+        <div class="layui-logo layui-hide-xs layui-bg-black">WageManage</div>
+        <!-- 头部区域（可配合layui 已有的水平导航） -->
+        <ul class="layui-nav layui-layout-left">
+            <li th:if="${session.jobId} != 2"  class="layui-nav-item layui-hide-xs"><a th:href="@{employeeManage}">人事管理</a></li>
+            <li th:if="${session.jobId} != 1" class="layui-nav-item layui-hide-xs"><a th:href="@{wageConfig}">工资设置</a></li>
+            <li th:if="${session.jobId} == 0" class="layui-nav-item layui-hide-xs layui-this"><a>考勤统计</a></li>
+        </ul>
+        <ul class="layui-nav layui-layout-right">
+            <li class="layui-nav-item layui-hide layui-show-md-inline-block">
+                <a href="javascript:;">
+                    <p th:text="${session.userName}"/>
+                </a>
+                <dl class="layui-nav-child">
+                    <dd><a th:href="@{loginOut}">Sign out</a></dd>
+                </dl>
+            </li>
+        </ul>
+    </div>
+</div>
+<div style="margin: 80px 0" >
+    <table class="layui-hide" id="demo" lay-filter="test"></table>
+</div>
+<script type="text/html" id="toolbarDemo">
+    <div class="layui-table-tool-temp">
+        <div style="margin: 10px 10px 10px 10px" id="btn">
+            <form class="layui-form layui-form-pane" action="">
+                <div class="layui-form-item">
+                    <div class="layui-inline">
+                        <label class="layui-form-label">员工姓名</label>
+                        <div class="layui-input-inline">
+                            <!--注意此处input标签里的id-->
+                            <input class="layui-input" name="keyword" id="demoReload" autocomplete="off">
+                        </div>
+                    </div>
+
+                    <div class="layui-inline">
+                        <!--注意此处button标签里的type属性-->
+                        <button type="button" class="layui-btn layui-btn-primary"  data-type="reload" lay-filter="data-search-btn"><i class="layui-icon"></i> 搜 索</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</script>
+<script type="text/html" id="barDemo">
+    <a class="layui-btn layui-btn-primary layui-btn-xs" lay-event="detail">查看</a>
+    <a class="layui-btn layui-btn-primary layui-btn-xs" lay-event="edit">编辑</a>
+</script>
+<script th:src="@{/layui/layui.js}"></script>
+<script>
+    layui.use(function(){
+        // 得到需要的内置组件
+        var layer = layui.layer; //弹层
+        var laypage = layui.laypage; //分页
+        var table = layui.table; //表格
+        var form = layui.form; //表单
+        var $ = layui.jquery; //jquery
+
+
+        // 执行一个 table 实例
+        table.render({
+            elem: '#demo'
+            ,height: 580
+            ,url: '/WageManage/admin/selectAllCheckStatByPage' //数据接口（此处为静态数据，仅作演示）
+            ,title: '考勤统计表'
+            ,page: true //开启分页
+            ,toolbar: '#toolbarDemo' //开启工具栏，此处显示默认图标，可以自定义模板，详见文档
+            ,totalRow: true //开启合计行
+            ,cols: [ [ //表头
+                {field: 'checkId', title: '编号', width:125, sort: true, fixed: 'left'}
+                ,{field: 'employeeId', title: '员工编号',sort: true, width:140}
+                ,{field: 'employeeName', title: '员工姓名', width: 140,}
+                ,{field: 'overtimeDay', title: '加班天数',sort: true, width: 90}
+                ,{field: 'evectionDay', title: '出差天数', sort: true,width: 150}
+                ,{field: 'absentDay', title: '旷工天数',sort: true, width: 150}
+                ,{field: 'lateDay', title: '迟到次数',sort: true, width: 150}
+                ,{fixed: 'right', title: '操作', width: 150, align:'center', toolbar: '#barDemo'}
+            ] ]
+        });
+
+        //搜索框事件
+        var active = {
+            reload: function(){
+                var demoReload = $('#demoReload');	//得到搜索框里已输入的数据
+                //执行重载
+                table.reload('demo', {
+                    page: {
+                        curr: 1 //重新从第 1 页开始
+                    }
+                    ,where: {
+                        employeeName:  demoReload.val()		//在表格中进行搜索
+                    }
+                });
+            }
+        };
+        $('#btn .layui-btn').on('click', function(){
+            var type = $(this).data('type');
+            active[type] ? active[type].call(this) : '';
+        });
+
+        // 单元格工具事件
+        table.on('tool(test)', function(obj){ //注：tool 是工具条事件名，test 是 table 原始容器的属性 lay-filter="对应的值"
+            var data = obj.data //获得当前行数据
+                ,layEvent = obj.event; //获得 lay-event 对应的值
+            if(layEvent === 'detail'){
+                layer.open({
+                    type: 1,
+                    title: "查看考勤统计详细信息",
+                    area: '500px',
+                    content: $("#popCheck"),
+                    success: function(){
+                        //给表单赋值
+                        form.val("formCheck", { //formTest 即 class="layui-form" 所在元素属性 lay-filter="" 对应的值
+                            "checkId":data.checkId
+                            ,"employeeId":data.employeeId
+                            ,"employeeName": data.employeeName
+                            ,"overtimeDay":data.overtimeDay
+                            ,"evectionDay": data.evectionDay
+                            ,"absentDay": data.absentDay
+                            ,"lateDay": data.lateDay
+                        });
+                    }
+                });
+            } else if(layEvent === 'edit'){
+                var index = layer.open({
+                    type: 1,
+                    title: "修改考勤统计信息",
+                    area: '500px',
+                    content: $("#popEdit"),
+                    success: function(){
+                        //给表单赋值
+                        form.val("formEdit", { //formTest 即 class="layui-form" 所在元素属性 lay-filter="" 对应的值
+                            "overtimeDay":data.overtimeDay
+                            ,"evectionDay": data.evectionDay
+                            ,"absentDay": data.absentDay
+                            ,"lateDay": data.lateDay
+                        });
+                    }
+                });
+                //提交
+                form.on('submit(edit)', function(formData){
+                    formData.field["checkId"] = data.checkId;
+                    formData.field["employeeId"] = data.employeeId;
+                    formData.field["employeeName"] = data.employeeName;
+                    $.ajax({
+                        url : "/WageManage/admin/updateCheckStat",
+                        type: "post",
+                        contentType: "application/json",
+                        dataType:"json",
+                        data: JSON.stringify(formData.field),
+                        success: function (res) {
+                            // 向服务端发送添加请求，执行完毕后，可通过 reloadData 方法完成数据重载
+                            if (res.msg === '更新成功'){
+                                table.reload("demo", {
+                                    scrollPos: 'fixed'  // 保持滚动条位置不变 - v2.7.3 新增
+                                });
+                            }
+                            layer.msg(res.msg);
+                        },
+                    });
+                    parent.layer.close(index);
+                    return false;
+                });
+            }
+        });
+
+        // 分页
+        laypage.render({
+            elem: 'pageDemo' //分页容器的id
+            ,count: 1000 //数据总数
+            ,limit: 10 //每页显示的数据条数
+            ,skin: '#1E9FFF' //自定义选中色值
+            //,layout: ['prev', 'page', 'next', 'count', 'limit', 'refresh', 'skip'] //自定义排版
+            ,jump: function(obj, first){
+                if(!first){
+                    layer.msg('第'+ obj.curr +'页', {offset: 'b'});
+                }
+            }
+        });
+    });
+</script>
+<!--查看考勤弹出层-->
+<div id="popCheck" style="display:none;" class="site-block site-text">
+    <form class="layui-form" lay-filter="formCheck"  action="">
+        <div class="layui-form-item">
+            <label class="layui-form-label">编号</label>
+            <div class="layui-input-block">
+                <input type="text" name="checkId" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">员工编号</label>
+            <div class="layui-input-block">
+                <input type="text" name="employeeId" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">员工姓名</label>
+            <div class="layui-input-block">
+                <input type="text" name="employeeName" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">加班天数</label>
+            <div class="layui-input-block">
+                <input type="text" name="overtimeDay" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">出差天数</label>
+            <div class="layui-input-block">
+                <input type="text" name="evectionDay" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">旷工天数</label>
+            <div class="layui-input-block">
+                <input type="text" name="absentDay" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">迟到次数</label>
+            <div class="layui-input-block">
+                <input type="text" name="lateDay" class="layui-input">
+            </div>
+        </div>
+    </form>
+</div>
+<!--编辑考勤弹出层-->
+<div id="popEdit" style="display:none;" class="site-block site-text">
+    <form class="layui-form" action="" lay-filter="formEdit">
+        <div class="layui-form-item">
+            <label class="layui-form-label">加班天数</label>
+            <div class="layui-input-block">
+                <input type="text" name="overtimeDay" required  lay-verify="required" placeholder="请输入加班天数" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">出差天数</label>
+            <div class="layui-input-block">
+                <input type="text" name="evectionDay" required  lay-verify="required" placeholder="请输入出差天数"  class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">旷工天数</label>
+            <div class="layui-input-block">
+                <input type="text" name="absentDay" required  lay-verify="required" placeholder="请输入旷工天数"  class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">迟到次数</label>
+            <div class="layui-input-block">
+                <input type="text" name="lateDay" required  lay-verify="required" placeholder="请输入迟到次数"  class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button class="layui-btn" lay-submit lay-filter="edit">立即提交</button>
+                <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+            </div>
+        </div>
+    </form>
+</div>
+</body>
+</html>
